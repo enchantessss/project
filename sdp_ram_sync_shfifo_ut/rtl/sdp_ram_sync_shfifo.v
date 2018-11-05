@@ -156,20 +156,8 @@ always @(posedge clk or negedge rst_n) begin
         r4_vld <= stdby_vld | (fifo_wen & fifo_rcnt == 'd4);
     end
     else if(r4_vld & fifo_ren) begin
-        r4 <= stdby_vld ? stdby_dat : 
-              (fifo_wen & fifo_rcnt == 'd5 & r0_vld & r1_vld & r2_vld & r3_vld) ? fifo_wdat :
-              (fifo_wen & ram_rcnt_2d == 'd0) ? fifo_wdat : 'b0;
-        r4_vld <= stdby_vld | 
-                  (fifo_wen & fifo_rcnt == 'd5 & r0_vld & r1_vld & r2_vld & r3_vld) | 
-                  (fifo_wen & ram_rcnt_2d == 'd0);
-    end
-    else if(~r3_vld & ~r4_vld & ram_rcnt_2d != 'b0 & fifo_wen & ~ram_full) begin
-        r4 <= fifo_wdat;
-        r4_vld <= 'b1;
-    end
-    else if(~r3_vld & r4_vld & ram_rcnt_2d == 'b0 & fifo_wen & ~ram_full) begin
-        r4 <= fifo_wdat;
-        r4_vld <= 'b1;
+        r4 <= stdby_vld ? stdby_dat : (fifo_wen & fifo_rcnt == 'd5 & r0_vld & r1_vld & r2_vld & r3_vld) ? fifo_wdat : 'b0;
+        r4_vld <= stdby_vld | (fifo_wen & fifo_rcnt == 'd5 & r0_vld & r1_vld & r2_vld & r3_vld);
     end
     else;
 end
@@ -186,17 +174,7 @@ always @(posedge clk or negedge rst_n) begin
         ram_waddr <= ram_waddr + ram_wen;
         ram_wdat <= fifo_wdat;
     end
-    else if((ram_rcnt != 0 | ram_rcnt_1d != 0) & fifo_wen & ~ram_full) begin
-        ram_wen <= 'b1;
-        ram_waddr <= ram_waddr + ram_wen;
-        ram_wdat <= fifo_wdat;
-    end
-    else if(~r3_vld & ~r4_vld & ram_rcnt_2d != 0 & fifo_wen & ~ram_full) begin
-        ram_wen <= 'b0;
-        ram_waddr <= ram_waddr + ram_wen;
-        ram_wdat <= fifo_wdat;
-    end
-    else if(ram_rcnt_2d != 0 & fifo_wen & ~ram_full) begin
+    else if((ram_rcnt != 0 | ram_rcnt_1d != 0 | ram_rcnt_2d != 0) & fifo_wen & ~ram_full) begin
         ram_wen <= 'b1;
         ram_waddr <= ram_waddr + ram_wen;
         ram_wdat <= fifo_wdat;
