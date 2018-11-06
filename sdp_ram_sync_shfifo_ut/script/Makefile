@@ -27,7 +27,7 @@ build:
 sim:
 	./simv +UVM_VERBOSITY=$(UVM_VERBOSITY) \
 	+UVM_TESTNAME=$(TEST) +UVM_TR_RECORD +UVM_LOG_RECORD \
-	+verbose=1 +ntb_random_seed=234 -l vcs.log
+	+verbose=1 +ntb_random_seed=235 -l vcs.log
 
 all: build sim
 

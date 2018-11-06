@@ -73,6 +73,8 @@ reg                                                 r4_vld;
 
 reg   [RAM_DATA_WIDTH - 1 : 0]                      stdby_dat; // Ram read data out stdby.
 reg                                                 stdby_vld; // Ram_ren_2d
+reg   [RAM_DATA_WIDTH - 1 : 0]                      ram_empty_wcache;
+reg                                                 ram_empty_wcache_vld;
 
 reg   [RAM_ADDR_WIDTH - 1 : 0]                      ram_rcnt;
 reg   [RAM_ADDR_WIDTH - 1 : 0]                      ram_rcnt_1d;
@@ -174,7 +176,17 @@ always @(posedge clk or negedge rst_n) begin
         ram_waddr <= ram_waddr + ram_wen;
         ram_wdat <= fifo_wdat;
     end
-    else if((ram_rcnt != 0 | ram_rcnt_1d != 0 | ram_rcnt_2d != 0) & fifo_wen & ~ram_full) begin
+    else if(ram_rcnt != 0 & fifo_wen & ~ram_full) begin
+        ram_wen <= 'b1;
+        ram_waddr <= ram_waddr + ram_wen;
+        ram_wdat <= fifo_wdat;
+    end
+    else if(ram_rcnt_1d != 0 & r4_vld & fifo_wen & ~ram_full) begin // if r4_vld, there is no space for cache, should write to ram.
+        ram_wen <= 'b1;
+        ram_waddr <= ram_waddr + ram_wen;
+        ram_wdat <= fifo_wdat;
+    end
+    else if(ram_wen & fifo_wen & ~ram_full) begin // if encounter ram_wen, data should be write to ram too, to keep order
         ram_wen <= 'b1;
         ram_waddr <= ram_waddr + ram_wen;
         ram_wdat <= fifo_wdat;
@@ -238,8 +250,33 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 
-assign stdby_vld = ram_ren_2d;
-assign stdby_dat = ram_q;
+always @(posedge clk or negedge rst_n) begin
+    if(~rst_n) begin
+        ram_empty_wcache <= 'b0;
+        ram_empty_wcache_vld <= 'b0;
+    end
+    else if(ram_rcnt == 'b0 & ram_rcnt_2d == 'd1 & fifo_wen & ~ram_wen) begin // data supposed to be writen into ram go to cache
+        ram_empty_wcache <= fifo_wdat;
+        ram_empty_wcache_vld <= 'b1;
+    end
+    else if(~r4_vld & ram_rcnt == 'b0 & stdby_vld & fifo_wen & ~ram_wen) begin // ram rdat just pop out at the same time
+        ram_empty_wcache <= fifo_wdat;
+        ram_empty_wcache_vld <= 'b1;
+    end
+    else if(~r4_vld & ram_rcnt == 'b0 & ram_ren_1d & fifo_wen & ~ram_wen) begin // still have space for cache
+        ram_empty_wcache <= fifo_wdat;
+        ram_empty_wcache_vld <= 'b1;
+    end
+    else if(~r4_vld & ~ram_ren_2d) begin // hold until r4 can receive
+        ram_empty_wcache <= 'b0;
+        ram_empty_wcache_vld <= 'b0;
+    end
+    else;
+end
+
+assign stdby_vld = ram_ren_2d | ram_empty_wcache_vld;
+assign stdby_dat = ram_ren_2d ? ram_q : ram_empty_wcache;
+
 assign fifo_rdat = r0_vld ? r0 : 'b0; 
 
 
