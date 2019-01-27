@@ -28,10 +28,10 @@ module sync_shfifo #(
     output reg                      fifo_rd_empty_err
 );
 
-reg  [FIFO_WIDTH-1 :0]   fifo_data[FIFO_DEPTH];
+reg  [FIFO_WIDTH-1 :0]   fifo_data[FIFO_DEPTH-1 :0];
 reg  [FIFO_ADDR-1 :0]    fifo_wr_ptr;
 reg  [FIFO_ADDR-1 :0]    fifo_rd_ptr;
-
+//reg  [FIFO_ADDR-1 :0]    i;
 
 always @(posedge clk or negedge rst_n)
 begin
@@ -47,7 +47,7 @@ end
 always @(posedge clk or negedge rst_n)
 begin
     if(~rst_n) begin
-        for(int i = 0; i <= FIFO_DEPTH-1; i++) begin
+        for(integer i = 0; i <= FIFO_DEPTH-1; i=i+1) begin
             fifo_data[i] <= 'b0;
         end
     end
